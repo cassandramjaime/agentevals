@@ -49,7 +49,7 @@ export function EvaluationForm({ onSubmit }: EvaluationFormProps) {
         <div className="mb-8">
           <h2 className="text-2xl font-display font-semibold text-white mb-2">Configure Evaluation</h2>
           <p className="text-muted-foreground text-sm">
-            Provide your agent details to run 100 synthetic adversarial scenarios.
+            Provide your agent details to run 20 synthetic adversarial scenarios.
           </p>
         </div>
 
@@ -103,11 +103,11 @@ export function EvaluationForm({ onSubmit }: EvaluationFormProps) {
           <div className="pt-6 border-t border-white/5 flex flex-col items-center gap-4">
             <Button type="submit" size="lg" className="w-full group" disabled={isSubmitting}>
               <Play className="w-5 h-5 mr-2 fill-current group-hover:scale-110 transition-transform" />
-              Run 100 Scenarios
+              Run Evaluation
             </Button>
             <p className="text-xs text-muted-foreground flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-500/50 border border-emerald-500"></span>
-              Estimated cost: ~$3-5 per evaluation (BYOLLM)
+              Estimated cost: ~$1-2 per evaluation (BYOLLM)
             </p>
           </div>
         </form>

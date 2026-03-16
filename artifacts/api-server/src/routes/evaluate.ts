@@ -1,6 +1,8 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { StartEvaluationBody } from "@workspace/api-zod";
 import Anthropic from "@anthropic-ai/sdk";
+import dns from "node:dns/promises";
+import net from "node:net";
 
 const router: IRouter = Router();
 
@@ -21,29 +23,41 @@ interface ScenarioResult {
 
 const BLOCKED_HOSTNAMES = new Set([
   "localhost",
-  "127.0.0.1",
-  "0.0.0.0",
-  "::1",
-  "[::1]",
   "metadata.google.internal",
-  "169.254.169.254",
 ]);
 
-function isPrivateIP(hostname: string): boolean {
-  if (BLOCKED_HOSTNAMES.has(hostname.toLowerCase())) return true;
-
-  const parts = hostname.split(".").map(Number);
-  if (parts.length === 4 && parts.every((p) => !isNaN(p))) {
-    if (parts[0] === 10) return true;
-    if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
-    if (parts[0] === 192 && parts[1] === 168) return true;
-    if (parts[0] === 169 && parts[1] === 254) return true;
-  }
-
+function isPrivateIPv4(ip: string): boolean {
+  const parts = ip.split(".").map(Number);
+  if (parts.length !== 4 || parts.some((p) => isNaN(p))) return false;
+  if (parts[0] === 10) return true;
+  if (parts[0] === 127) return true;
+  if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
+  if (parts[0] === 192 && parts[1] === 168) return true;
+  if (parts[0] === 169 && parts[1] === 254) return true;
+  if (parts[0] === 0) return true;
   return false;
 }
 
-function validateAgentEndpoint(endpoint: string): string | null {
+function isPrivateIPv6(ip: string): boolean {
+  const normalized = ip.toLowerCase().replace(/^\[|\]$/g, "");
+  if (normalized === "::1") return true;
+  if (normalized === "::") return true;
+  if (normalized.startsWith("fe80:")) return true;
+  if (normalized.startsWith("fc") || normalized.startsWith("fd")) return true;
+  if (normalized.startsWith("::ffff:")) {
+    const v4Part = normalized.substring(7);
+    if (isPrivateIPv4(v4Part)) return true;
+  }
+  return false;
+}
+
+function isPrivateAddress(ip: string): boolean {
+  if (net.isIPv4(ip)) return isPrivateIPv4(ip);
+  if (net.isIPv6(ip)) return isPrivateIPv6(ip);
+  return false;
+}
+
+async function validateAgentEndpoint(endpoint: string): Promise<string | null> {
   let url: URL;
   try {
     url = new URL(endpoint);
@@ -55,8 +69,39 @@ function validateAgentEndpoint(endpoint: string): string | null {
     return "URL must use http or https protocol";
   }
 
-  if (isPrivateIP(url.hostname)) {
+  const hostname = url.hostname.replace(/^\[|\]$/g, "");
+
+  if (BLOCKED_HOSTNAMES.has(hostname.toLowerCase())) {
     return "Agent endpoint cannot point to private/internal network addresses";
+  }
+
+  if (net.isIP(hostname)) {
+    if (isPrivateAddress(hostname)) {
+      return "Agent endpoint cannot point to private/internal network addresses";
+    }
+    return null;
+  }
+
+  try {
+    const addresses = await dns.resolve(hostname);
+    for (const addr of addresses) {
+      if (isPrivateAddress(addr)) {
+        return "Agent endpoint hostname resolves to a private/internal network address";
+      }
+    }
+  } catch {
+    return "Could not resolve agent endpoint hostname";
+  }
+
+  try {
+    const addresses6 = await dns.resolve6(hostname);
+    for (const addr of addresses6) {
+      if (isPrivateIPv6(addr)) {
+        return "Agent endpoint hostname resolves to a private/internal network address";
+      }
+    }
+  } catch {
+    // No AAAA records is fine
   }
 
   return null;
@@ -179,7 +224,7 @@ router.post("/evaluate", async (req: Request, res: Response) => {
 
   const { agentEndpoint, claudeApiKey, agentDescription } = parsed.data;
 
-  const endpointError = validateAgentEndpoint(agentEndpoint);
+  const endpointError = await validateAgentEndpoint(agentEndpoint);
   if (endpointError) {
     res.status(400).json({ error: endpointError });
     return;

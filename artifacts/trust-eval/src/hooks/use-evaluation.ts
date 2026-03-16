@@ -1,5 +1,9 @@
 import { useState, useRef, useCallback } from "react";
-import type { EvaluationRequest } from "@workspace/api-client-react/src/generated/api.schemas";
+interface EvaluationRequest {
+  agentEndpoint: string;
+  claudeApiKey: string;
+  agentDescription: string;
+}
 
 export type EvaluationStatus = "idle" | "running" | "complete" | "error";
 
@@ -20,7 +24,7 @@ export interface EvaluationProgress {
 
 export function useEvaluation() {
   const [status, setStatus] = useState<EvaluationStatus>("idle");
-  const [progress, setProgress] = useState<EvaluationProgress>({ completed: 0, total: 100 });
+  const [progress, setProgress] = useState<EvaluationProgress>({ completed: 0, total: 20 });
   const [currentMessage, setCurrentMessage] = useState<string>("Initializing...");
   const [result, setResult] = useState<EvaluationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +33,7 @@ export function useEvaluation() {
 
   const start = useCallback(async (data: EvaluationRequest) => {
     setStatus("running");
-    setProgress({ completed: 0, total: 100 });
+    setProgress({ completed: 0, total: 20 });
     setCurrentMessage("Preparing evaluation environment...");
     setError(null);
     setResult(null);
@@ -138,7 +142,7 @@ export function useEvaluation() {
     setStatus("idle");
     setResult(null);
     setError(null);
-    setProgress({ completed: 0, total: 100 });
+    setProgress({ completed: 0, total: 20 });
   }, []);
 
   return {
