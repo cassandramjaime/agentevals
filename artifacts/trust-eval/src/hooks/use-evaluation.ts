@@ -25,21 +25,30 @@ export interface EvaluationProgress {
   passed?: boolean;
 }
 
+export interface CompletedScenario {
+  name: string;
+  passed: boolean;
+}
+
 export function useEvaluation() {
   const [status, setStatus] = useState<EvaluationStatus>("idle");
   const [progress, setProgress] = useState<EvaluationProgress>({ completed: 0, total: 20 });
   const [currentMessage, setCurrentMessage] = useState<string>("Initializing...");
   const [result, setResult] = useState<EvaluationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [completedScenarios, setCompletedScenarios] = useState<CompletedScenario[]>([]);
 
   const abortControllerRef = useRef<AbortController | null>(null);
+  const runIdRef = useRef(0);
 
   const start = useCallback(async (data: EvaluationRequest) => {
+    const currentRunId = ++runIdRef.current;
     setStatus("running");
     setProgress({ completed: 0, total: 20 });
     setCurrentMessage("Preparing evaluation environment...");
     setError(null);
     setResult(null);
+    setCompletedScenarios([]);
 
     abortControllerRef.current = new AbortController();
 
@@ -93,6 +102,8 @@ export function useEvaluation() {
           }
 
           try {
+            if (currentRunId !== runIdRef.current) return;
+
             const parsed = JSON.parse(eventData);
 
             if (eventType === "status") {
@@ -104,6 +115,9 @@ export function useEvaluation() {
                 scenarioName: parsed.scenarioName,
                 passed: parsed.passed,
               });
+              if (parsed.scenarioName != null && parsed.passed != null) {
+                setCompletedScenarios(prev => [...prev, { name: parsed.scenarioName, passed: parsed.passed }]);
+              }
               setCurrentMessage(`Testing scenario: ${parsed.scenarioName || `Task ${parsed.completed}`}`);
             } else if (eventType === "result") {
               setResult(parsed);
@@ -146,11 +160,13 @@ export function useEvaluation() {
     setResult(null);
     setError(null);
     setProgress({ completed: 0, total: 20 });
+    setCompletedScenarios([]);
   }, []);
 
   return {
     status,
     progress,
+    completedScenarios,
     currentMessage,
     result,
     error,

@@ -1,17 +1,23 @@
-import React from "react";
-import { motion } from "framer-motion";
+import React, { useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Activity, XCircle, CheckCircle2, XCircle as XCircleIcon } from "lucide-react";
 import { Button } from "./ui/button";
-import type { EvaluationProgress as ProgressType } from "@/hooks/use-evaluation";
+import type { EvaluationProgress as ProgressType, CompletedScenario } from "@/hooks/use-evaluation";
 
 interface EvaluationProgressProps {
   progress: ProgressType;
+  completedScenarios: CompletedScenario[];
   message: string;
   onCancel: () => void;
 }
 
-export function EvaluationProgress({ progress, message, onCancel }: EvaluationProgressProps) {
+export function EvaluationProgress({ progress, completedScenarios, message, onCancel }: EvaluationProgressProps) {
   const percentage = progress.total > 0 ? Math.round((progress.completed / progress.total) * 100) : 0;
+  const logEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    logEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [completedScenarios.length]);
 
   return (
     <motion.div
@@ -21,7 +27,6 @@ export function EvaluationProgress({ progress, message, onCancel }: EvaluationPr
       className="w-full max-w-xl mx-auto text-center"
     >
       <div className="glass-card rounded-3xl p-12 relative overflow-hidden flex flex-col items-center">
-        {/* Pulsing background glow */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-primary/10 rounded-full blur-3xl animate-pulse" />
 
         <div className="relative z-10 flex flex-col items-center w-full">
@@ -66,16 +71,29 @@ export function EvaluationProgress({ progress, message, onCancel }: EvaluationPr
               <span>{progress.total - progress.completed} remaining</span>
             </div>
             
-            {progress.scenarioName && (
-              <div className="w-full bg-black/20 rounded-lg p-3 border border-white/5 flex items-center gap-3 text-left text-sm mb-6">
-                {progress.passed === true ? (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                ) : progress.passed === false ? (
-                  <XCircleIcon className="w-4 h-4 text-destructive shrink-0" />
-                ) : (
-                  <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin shrink-0" />
-                )}
-                <span className="truncate text-gray-300">{progress.scenarioName}</span>
+            {completedScenarios.length > 0 && (
+              <div className="w-full max-h-48 overflow-y-auto rounded-lg border border-white/5 bg-black/20 mb-6 scrollbar-thin">
+                <div className="divide-y divide-white/5">
+                  <AnimatePresence initial={false}>
+                    {completedScenarios.map((scenario, idx) => (
+                      <motion.div
+                        key={idx}
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        transition={{ duration: 0.2 }}
+                        className="flex items-center gap-3 px-3 py-2 text-left text-sm"
+                      >
+                        {scenario.passed ? (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                        ) : (
+                          <XCircleIcon className="w-4 h-4 text-destructive shrink-0" />
+                        )}
+                        <span className="truncate text-gray-300">{scenario.name}</span>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                  <div ref={logEndRef} />
+                </div>
               </div>
             )}
 

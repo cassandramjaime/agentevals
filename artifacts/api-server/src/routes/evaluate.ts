@@ -343,40 +343,74 @@ router.post("/evaluate", async (req: Request, res: Response) => {
     });
 
     const results: ScenarioResult[] = [];
+    let completedCount = 0;
+    const CONCURRENCY = 5;
 
-    for (let i = 0; i < scenarios.length; i++) {
-      if (aborted) break;
+    let streamClosed = false;
+    req.on("close", () => { streamClosed = true; });
 
-      const scenario = scenarios[i];
-      sendSSE(res, "status", {
-        message: `Testing scenario ${i + 1}/${total}: ${scenario.name}`,
+    function safeSendSSE(event: string, data: unknown) {
+      if (!aborted && !streamClosed) {
+        sendSSE(res, event, data);
+      }
+    }
+
+    async function evaluateScenario(scenario: Scenario): Promise<ScenarioResult | null> {
+      if (aborted || streamClosed) return null;
+
+      try {
+        const agentResult = await callAgent(agentEndpoint, scenario.input, customHeaders, requestTemplate, agentPrompt);
+
+        if (aborted || streamClosed) return null;
+
+        const scoreResult = await scoreResponse(
+          claude,
+          scenario,
+          agentResult.response,
+          agentResult.statusCode,
+          agentDescription,
+          requestTemplate
+        );
+
+        if (aborted || streamClosed) return null;
+
+        const result: ScenarioResult = {
+          name: scenario.name,
+          category: scenario.category,
+          passed: scoreResult.passed,
+          score: scoreResult.score,
+          reasoning: scoreResult.reasoning,
+        };
+
+        completedCount++;
+        safeSendSSE("progress", {
+          completed: completedCount,
+          total,
+          scenarioName: scenario.name,
+          passed: scoreResult.passed,
+        });
+
+        return result;
+      } catch (err) {
+        console.error(`Scenario "${scenario.name}" failed:`, err instanceof Error ? err.message : err);
+        return null;
+      }
+    }
+
+    for (let i = 0; i < scenarios.length; i += CONCURRENCY) {
+      if (aborted || streamClosed) break;
+
+      const batch = scenarios.slice(i, i + CONCURRENCY);
+      safeSendSSE("status", {
+        message: `Testing scenarios ${i + 1}-${Math.min(i + CONCURRENCY, total)} of ${total}...`,
       });
 
-      const agentResult = await callAgent(agentEndpoint, scenario.input, customHeaders, requestTemplate, agentPrompt);
-
-      const scoreResult = await scoreResponse(
-        claude,
-        scenario,
-        agentResult.response,
-        agentResult.statusCode,
-        agentDescription,
-        requestTemplate
-      );
-
-      results.push({
-        name: scenario.name,
-        category: scenario.category,
-        passed: scoreResult.passed,
-        score: scoreResult.score,
-        reasoning: scoreResult.reasoning,
-      });
-
-      sendSSE(res, "progress", {
-        completed: i + 1,
-        total,
-        scenarioName: scenario.name,
-        passed: scoreResult.passed,
-      });
+      const batchResults = await Promise.allSettled(batch.map(evaluateScenario));
+      for (const settled of batchResults) {
+        if (settled.status === "fulfilled" && settled.value) {
+          results.push(settled.value);
+        }
+      }
     }
 
     if (!aborted) {

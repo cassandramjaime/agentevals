@@ -9,7 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 
 export default function Home() {
-  const { status, progress, currentMessage, result, error, start, cancel, reset } = useEvaluation();
+  const { status, progress, completedScenarios, currentMessage, result, error, start, cancel, reset } = useEvaluation();
 
   return (
     <div className="min-h-screen flex flex-col relative">
@@ -58,6 +58,7 @@ export default function Home() {
             <EvaluationProgress 
               key="progress" 
               progress={progress} 
+              completedScenarios={completedScenarios}
               message={currentMessage} 
               onCancel={cancel} 
             />
