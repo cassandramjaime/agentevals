@@ -5,18 +5,25 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
+  MutationFunction,
   QueryFunction,
   QueryKey,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
 } from "@tanstack/react-query";
 
-import type { HealthStatus } from "./api.schemas";
+import type {
+  ErrorResponse,
+  EvaluationRequest,
+  HealthStatus,
+} from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
-import type { ErrorType } from "../custom-fetch";
+import type { ErrorType, BodyType } from "../custom-fetch";
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -99,3 +106,90 @@ export function useHealthCheck<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * Starts an evaluation pipeline that generates test scenarios, calls the agent, and scores responses. Returns results via SSE stream.
+ * @summary Start agent trust evaluation
+ */
+export const getStartEvaluationUrl = () => {
+  return `/api/evaluate`;
+};
+
+export const startEvaluation = async (
+  evaluationRequest: EvaluationRequest,
+  options?: RequestInit,
+): Promise<string> => {
+  return customFetch<string>(getStartEvaluationUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(evaluationRequest),
+  });
+};
+
+export const getStartEvaluationMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof startEvaluation>>,
+    TError,
+    { data: BodyType<EvaluationRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof startEvaluation>>,
+  TError,
+  { data: BodyType<EvaluationRequest> },
+  TContext
+> => {
+  const mutationKey = ["startEvaluation"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof startEvaluation>>,
+    { data: BodyType<EvaluationRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return startEvaluation(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type StartEvaluationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof startEvaluation>>
+>;
+export type StartEvaluationMutationBody = BodyType<EvaluationRequest>;
+export type StartEvaluationMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Start agent trust evaluation
+ */
+export const useStartEvaluation = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof startEvaluation>>,
+    TError,
+    { data: BodyType<EvaluationRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof startEvaluation>>,
+  TError,
+  { data: BodyType<EvaluationRequest> },
+  TContext
+> => {
+  return useMutation(getStartEvaluationMutationOptions(options));
+};

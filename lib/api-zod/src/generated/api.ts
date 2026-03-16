@@ -14,3 +14,17 @@ import * as zod from "zod";
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * Starts an evaluation pipeline that generates test scenarios, calls the agent, and scores responses. Returns results via SSE stream.
+ * @summary Start agent trust evaluation
+ */
+export const StartEvaluationBody = zod.object({
+  agentEndpoint: zod
+    .string()
+    .describe("The HTTP endpoint URL for the AI agent"),
+  claudeApiKey: zod.string().describe("User's Claude API key for evaluation"),
+  agentDescription: zod
+    .string()
+    .describe("Plain English description of what the agent does"),
+});

@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "AI Agent Trust Evaluator"
+version = "1.0.0"
+id = "artifacts/trust-eval"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+localPort = 19188
+name = "web"
+paths = ["/"]
+
+[services.development]
+run = "pnpm --filter @workspace/trust-eval run dev"
+
+[services.env]
+PORT = "19188"
+BASE_PATH = "/"
+
+[services.production]
+build = ["pnpm", "--filter", "@workspace/trust-eval", "run", "build"]
+publicDir = "artifacts/trust-eval/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"

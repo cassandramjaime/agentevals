@@ -1,0 +1,17 @@
+packages:
+  "framer-motion": "For smooth view transitions, progress bar animations, and results reveal"
+  "lucide-react": "For crisp, professional iconography throughout the app"
+  "react-hook-form": "For robust form state management and validation"
+  "@hookform/resolvers": "To integrate Zod validation with react-hook-form"
+  "zod": "For schema-based form validation"
+  "clsx": "For conditional tailwind class merging"
+  "tailwind-merge": "For deep tailwind class merging in UI components"
+
+images:
+  - path: "artifacts/trust-eval/public/images/dark-abstract-bg.png"
+    description: "A dark, premium, abstract gradient mesh background in deep indigo, zinc, and black. Very subtle and professional, like a high-end enterprise software hero background."
+    aspect_ratio: "16:9"
+
+notes:
+  - The backend /api/evaluate endpoint expects a POST request and streams Server-Sent Events (SSE) in response.
+  - Using native fetch and ReadableStream in the frontend to handle the POST request + SSE response because standard EventSource does not support POST with a JSON body.

@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: evaluate
+    description: Agent trust evaluation
 paths:
   /healthz:
     get:
@@ -24,6 +26,31 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /evaluate:
+    post:
+      operationId: startEvaluation
+      tags: [evaluate]
+      summary: Start agent trust evaluation
+      description: Starts an evaluation pipeline that generates test scenarios, calls the agent, and scores responses. Returns results via SSE stream.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EvaluationRequest"
+      responses:
+        "200":
+          description: SSE stream of evaluation progress and results
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +60,26 @@ components:
           type: string
       required:
         - status
-
+    EvaluationRequest:
+      type: object
+      properties:
+        agentEndpoint:
+          type: string
+          description: The HTTP endpoint URL for the AI agent
+        claudeApiKey:
+          type: string
+          description: User's Claude API key for evaluation
+        agentDescription:
+          type: string
+          description: Plain English description of what the agent does
+      required:
+        - agentEndpoint
+        - claudeApiKey
+        - agentDescription
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
