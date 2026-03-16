@@ -19,6 +19,49 @@ interface ScenarioResult {
   reasoning: string;
 }
 
+const BLOCKED_HOSTNAMES = new Set([
+  "localhost",
+  "127.0.0.1",
+  "0.0.0.0",
+  "::1",
+  "[::1]",
+  "metadata.google.internal",
+  "169.254.169.254",
+]);
+
+function isPrivateIP(hostname: string): boolean {
+  if (BLOCKED_HOSTNAMES.has(hostname.toLowerCase())) return true;
+
+  const parts = hostname.split(".").map(Number);
+  if (parts.length === 4 && parts.every((p) => !isNaN(p))) {
+    if (parts[0] === 10) return true;
+    if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
+    if (parts[0] === 192 && parts[1] === 168) return true;
+    if (parts[0] === 169 && parts[1] === 254) return true;
+  }
+
+  return false;
+}
+
+function validateAgentEndpoint(endpoint: string): string | null {
+  let url: URL;
+  try {
+    url = new URL(endpoint);
+  } catch {
+    return "Invalid URL format";
+  }
+
+  if (url.protocol !== "https:" && url.protocol !== "http:") {
+    return "URL must use http or https protocol";
+  }
+
+  if (isPrivateIP(url.hostname)) {
+    return "Agent endpoint cannot point to private/internal network addresses";
+  }
+
+  return null;
+}
+
 function sendSSE(res: Response, event: string, data: unknown) {
   res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 }
@@ -135,6 +178,12 @@ router.post("/evaluate", async (req: Request, res: Response) => {
   }
 
   const { agentEndpoint, claudeApiKey, agentDescription } = parsed.data;
+
+  const endpointError = validateAgentEndpoint(agentEndpoint);
+  if (endpointError) {
+    res.status(400).json({ error: endpointError });
+    return;
+  }
 
   res.writeHead(200, {
     "Content-Type": "text/event-stream",

@@ -36,6 +36,8 @@ export function useEvaluation() {
 
     abortControllerRef.current = new AbortController();
 
+    let receivedResult = false;
+
     try {
       const response = await fetch("/api/evaluate", {
         method: "POST",
@@ -46,7 +48,7 @@ export function useEvaluation() {
 
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || `HTTP Error: ${response.status}`);
+        throw new Error((errData as Record<string, string>).error || `HTTP Error: ${response.status}`);
       }
 
       if (!response.body) throw new Error("No response stream");
@@ -60,10 +62,10 @@ export function useEvaluation() {
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n\n");
-        buffer = lines.pop() || ""; // Keep the last incomplete chunk
+        const chunks = buffer.split("\n\n");
+        buffer = chunks.pop() || "";
 
-        for (const block of lines) {
+        for (const block of chunks) {
           const linesInBlock = block.split("\n");
           let eventType = "message";
           let eventData = "";
@@ -76,37 +78,49 @@ export function useEvaluation() {
             }
           }
 
-          if (eventData) {
-            try {
-              const parsed = JSON.parse(eventData);
-              
-              if (eventType === "status") {
-                setCurrentMessage(parsed.message);
-              } else if (eventType === "progress") {
-                setProgress({
-                  completed: parsed.completed,
-                  total: parsed.total || 100,
-                  scenarioName: parsed.scenarioName,
-                  passed: parsed.passed,
-                });
-                setCurrentMessage(`Testing scenario: ${parsed.scenarioName || `Task ${parsed.completed}`}`);
-              } else if (eventType === "result") {
-                setResult(parsed);
-                setStatus("complete");
-              } else if (eventType === "error") {
-                throw new Error(parsed.error || "Evaluation failed");
-              }
-            } catch (e) {
-              console.error("Failed to parse SSE event:", eventData, e);
+          if (!eventData) continue;
+
+          if (eventType === "error") {
+            const parsed = JSON.parse(eventData) as Record<string, string>;
+            throw new Error(parsed.error || "Evaluation failed");
+          }
+
+          try {
+            const parsed = JSON.parse(eventData);
+
+            if (eventType === "status") {
+              setCurrentMessage(parsed.message);
+            } else if (eventType === "progress") {
+              setProgress({
+                completed: parsed.completed,
+                total: parsed.total || 100,
+                scenarioName: parsed.scenarioName,
+                passed: parsed.passed,
+              });
+              setCurrentMessage(`Testing scenario: ${parsed.scenarioName || `Task ${parsed.completed}`}`);
+            } else if (eventType === "result") {
+              setResult(parsed);
+              setStatus("complete");
+              receivedResult = true;
             }
+          } catch (parseErr: unknown) {
+            if (parseErr instanceof Error && parseErr.message.includes("Evaluation failed")) {
+              throw parseErr;
+            }
+            console.error("Failed to parse SSE event:", eventData, parseErr);
           }
         }
       }
-    } catch (err: any) {
-      if (err.name === "AbortError") {
+
+      if (!receivedResult) {
+        throw new Error("Evaluation stream ended without producing results");
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") {
         setStatus("idle");
       } else {
-        setError(err.message || "An unexpected error occurred");
+        const message = err instanceof Error ? err.message : "An unexpected error occurred";
+        setError(message);
         setStatus("error");
       }
     }
