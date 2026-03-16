@@ -1,0 +1,160 @@
+Progressive Trust Infrastructure for Enterprise Agentic AI
+This PRD outlines a platform that enables safe, scalable deployment of agentic AI in enterprises through progressive autonomy and continuous trust signals. It targets B2B sales as the initial wedge with horizontal expansion across regulated and high-stakes domains.
+Market Opportunity
+The AI agents market is projected at $10.9B with ~50% CAGR, driven by automation of complex workflows. Within this, the enterprise agentic AI segment is estimated at $7.5B in 2026, reflecting rapid adoption in core business processes. B2B sales is the primary entry point: 89% of revenue organizations are already using AI, creating urgent needs for controllability, oversight, and auditability in agents handling pipeline, pricing, proposals, and outreach. The product is horizontally applicable across:
+Healthcare: care coordination, utilization review, RCM.
+Legal: research, drafting, e-discovery.
+Finance: FP&A, risk ops, compliance workflows.
+Customer support: triage, case resolution, refunds, entitlements.
+Problem Statement
+Enterprise adoption of agentic AI is blocked by a trust bottleneck. Current systems use binary permission models: an agent can fully act or is fully restricted. This prevents safe scaling from assistive to autonomous modes. Mechanisms for progressive autonomy are missing. Teams lack granular policies tied to confidence, context, and user roles, and cannot gate actions by risk. There is no feedback loop from human oversight into policy. Approvals, rejections, and edits are not structured or learned, so policies and behaviors do not improve over time. Evaluation infrastructure is inadequate. Enterprises cannot simulate, monitor, and halt compounding failures across multi-step, multi-agent workflows before they hit production. Without solving this, Gartner estimates 40% of agentic AI projects risk cancellation due to governance, safety, and ROI uncertainty.
+Goal
+Enable builders to leverage autonomous agents while controlling how and when their agents are autonomous. Their agents are goal-oriented, always-on. They will orchestrate specialized agents, earn trust through progressive autonomy, and work where builders work across every channel they use.
+Use Cases & Personas
+Primary use cases:
+Use Case 1: Builder Evaluation. A builder has developed an AI agent and needs to evaluate it for trustworthiness before deployment. This includes measuring accuracy, error rates, and understanding hallucination patterns to ensure the agent meets quality and safety thresholds.
+Use Case 2: Manager Evaluation at Scale. A manager overseeing a team of builders needs to evaluate multiple AI agent solutions to determine which performs best at scale. This involves comparative analysis of agent performance across production-like conditions and team workflows. Core personas:
+Startup Founders: Early-stage founders building AI-native products who need fast, lightweight evaluation infrastructure to validate agent behavior and build trust with early customers.
+Big Company Managers: Engineering or operations leaders at established enterprises responsible for vetting, deploying, and governing AI agents across teams. They prioritize compliance, auditability, and risk mitigation.
+Product Managers: PMs owning AI-powered features or workflows who need to balance velocity with safety, and require clear trust signals to make ship/no-ship decisions and communicate risk to stakeholders.
+Use Cases
+Builder Evaluation: A builder has developed an AI agent and needs to evaluate it for trustworthiness before deployment. This includes measuring accuracy, error rates, and understanding hallucination patterns to ensure the agent meets quality and safety thresholds.
+Manager Evaluation at Scale: A manager overseeing a team of builders needs to evaluate multiple AI agent solutions to determine which performs best at scale. This involves comparative analysis of agent performance across production-like conditions and team workflows.
+Personas
+Startup Founders: Early-stage founders building AI-native products who need fast, lightweight evaluation infrastructure to validate agent behavior and build trust with early customers.
+Big Company Managers: Engineering or operations leaders at established enterprises responsible for vetting, deploying, and governing AI agents across teams. They prioritize compliance, auditability, and risk mitigation.
+Product Managers: PMs owning AI-powered features or workflows who need to balance velocity with safety, and require clear trust signals to make ship/no-ship decisions and communicate risk to stakeholders.
+Solution
+Lean MVP: Rapid Trust Evaluation for AI Agents
+The MVP focuses on solving one core pain point: enabling Product Managers to quickly validate their AI agent across 100 targeted scenarios and receive a clear trust score.
+Core Capabilities:
+Smart Testing at Scale: Generate and run 100 synthetic test scenarios covering happy paths, edge cases, and failure modes
+Simple 3-Input Setup:
+Agent API Endpoint (where your agent lives)
+Claude API Key (for evaluation - stays private)
+Agent Description (what your agent does)
+Automated Evaluation Pipeline: Calls agent API, scores responses using Claude, calculates industry-standard trust metrics
+Trust Score (0-100): Clear benchmark showing agent maturity level:
+0-60: Intern (needs supervision)
+60-85: Mid-level (supervised autonomy)
+85-95: Production-ready
+95-100: Autonomous
+Results Dashboard: Pass/fail breakdown, scenario coverage, trust score with explanation
+Stakeholder-Ready Export: Optional PDF report for leadership presentations
+Privacy-First (BYOLLM):
+Users provide their own Claude API keys
+All data stays local - no centralized storage
+Full control over tokens and costs
+No vendor lock-in
+Delivery Time: 2-3 minutes from input to results
+Cost: ~$3-5 per evaluation (100 scenarios)
+Architecture
+System Design: Simple, Fast, Privacy-Preserving
+Data Flow: PM Inputs → Input Validation → Synthetic Test Generation → Evaluation Pipeline → Trust Score Calculation → Results Display → Optional Report Export
+Key Components:
+Web UI (Frontend)
+Landing page with 3-input form
+Live progress tracker (X/100 scenarios complete)
+Results dashboard with trust score visualization
+PDF export functionality
+Tech: HTML + Tailwind CSS (no build step)
+Backend Service
+Python Flask API
+Input validation (API endpoint reachability, key format)
+Orchestration of evaluation pipeline
+Report generation
+Tech: Flask + Python 3.11+
+Evaluation Engine
+Synthetic scenario generator (uses Claude)
+Agent API caller (HTTP requests to user's endpoint)
+Response scorer (Claude-based evaluation)
+Trust score calculator (0-100 based on pass rates)
+Tech: Python + Anthropic SDK
+Claude API Integration
+Scenario generation: 1 API call to create 100 diverse test cases
+Response scoring: 100 API calls to evaluate agent outputs
+Uses user's API key (BYOLLM model)
+Privacy & Security Architecture:
+No Data Persistence: All inputs, outputs, and logs are ephemeral (in-memory only)
+User-Controlled Keys: PM provides their own Claude API key - never stored
+Local Execution: Agent calls happen directly from user's browser/session
+No Telemetry: No tracking, no analytics, no data collection
+MVP Tech Stack:
+Frontend: HTML + Tailwind CSS + Chart.js
+Backend: Python Flask
+Evaluation: Claude API (via user's key)
+Deployment: Single-server setup (can run locally or on Heroku/Railway)
+Database: None (stateless)
+System Requirements:
+Agent must have HTTP API endpoint (REST)
+Agent must accept JSON input and return JSON response
+Claude API key with sufficient credits (~$5 per eval)
+User Experience
+Designed for Product Managers Who Just Built an AI Agent
+Primary User: Product Manager who has just finished building an AI agent and needs to validate it's ready for deployment. They need a trust score to present to stakeholders (leadership, legal, security).
+User Journey:
+Just built agent → Deployed to API endpoint
+Wants quick validation → Needs trust signal
+Visits eval tool → Enters 3 inputs
+Watches evaluation run → 2-3 minute wait
+Gets trust score + explanation → Downloads report
+Presents to stakeholders → Makes ship/no-ship decision
+Key UX Principles:
+Simplicity
+Only 3 required inputs (no complex configuration)
+Clear inline help text and examples
+Validation errors show immediately with helpful guidance
+Speed
+Complete evaluation in 2-3 minutes
+Live progress bar shows real-time status
+No account creation or login required
+Transparency
+Show exactly what's being tested (scenario types)
+Display live results as tests complete
+Explain how trust score is calculated
+Show cost estimate upfront (~$3-5)
+Educational
+Explain industry trust benchmarks
+Provide context for the score (what does 87/100 mean?)
+Suggest next steps based on results
+Link to trust framework documentation
+Input Requirements:
+What PM Needs:
+Agent API Endpoint
+Example: https://api.mycompany.com/sales-agent/invoke
+Must be publicly accessible (or use ngrok for local testing)
+Must accept POST requests with JSON body
+Claude API Key
+Get from: console.anthropic.com
+Format: sk-ant-api03-...
+Needs ~$5 in credits for 100-scenario evaluation
+Agent Description
+Plain English, 1-2 sentences
+Example: "Qualifies inbound sales leads and routes them to the right rep"
+Used to generate relevant test scenarios
+Expected Outcomes:
+Immediate Results (Dashboard):
+Big trust score number (0-100)
+Visual gauge/meter showing maturity level
+Pass/fail breakdown by scenario category
+List of failed scenarios with details
+Industry benchmark comparison
+Exportable Deliverable (PDF Report):
+Executive summary (1-page)
+Trust score with explanation
+Pass/fail statistics
+Sample test cases (passed and failed)
+Recommendations for improvement
+Shareable with stakeholders
+Success Metrics:
+User Success:
+PM can confidently present agent readiness to leadership
+Clear evidence-based decision on ship/no-ship
+Stakeholders understand the risk profile
+PM knows exactly what to improve
+Product Success:
+Time to trust signal: <3 minutes
+User can complete flow without help docs
+Results are actionable (not just numbers)
+Report is stakeholder-ready (no editing needed)
+ 
