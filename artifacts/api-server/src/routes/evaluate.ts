@@ -309,6 +309,7 @@ router.post("/evaluate", async (req: Request, res: Response) => {
         passed,
         failed,
         total,
+        scenarios: results,
       });
     }
   } catch (err: unknown) {
