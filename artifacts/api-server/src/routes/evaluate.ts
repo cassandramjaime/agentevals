@@ -413,7 +413,7 @@ router.post("/evaluate", async (req: Request, res: Response) => {
       }
     }
 
-    if (!aborted) {
+    if (!aborted && results.length > 0) {
       const passed = results.filter((r) => r.passed).length;
       const failed = results.filter((r) => !r.passed).length;
       const avgScore = Math.round(
@@ -434,6 +434,8 @@ router.post("/evaluate", async (req: Request, res: Response) => {
         total,
         scenarios: results,
       });
+    } else if (!aborted && results.length === 0) {
+      sendSSE(res, "error", { error: "All scenarios failed to execute. Please check your agent endpoint and try again." });
     }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Evaluation failed";
