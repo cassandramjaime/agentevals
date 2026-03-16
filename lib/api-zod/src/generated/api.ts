@@ -27,4 +27,22 @@ export const StartEvaluationBody = zod.object({
   agentDescription: zod
     .string()
     .describe("Plain English description of what the agent does"),
+  customHeaders: zod
+    .record(zod.string())
+    .optional()
+    .describe(
+      "Optional custom headers to send with each agent API request (e.g., x-api-key, anthropic-version)"
+    ),
+  requestTemplate: zod
+    .string()
+    .optional()
+    .describe(
+      "Optional JSON template for the request body. Use {{INPUT}} as a placeholder where the generated test input will be inserted and {{PROMPT}} for the agent system prompt."
+    ),
+  agentPrompt: zod
+    .string()
+    .optional()
+    .describe(
+      "Optional system prompt that defines the agent's behavior (e.g., 'You are a sales agent that qualifies inbound leads'). Used with {{PROMPT}} placeholder in the request template."
+    ),
 });

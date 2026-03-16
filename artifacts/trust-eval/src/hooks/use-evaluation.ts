@@ -3,6 +3,9 @@ interface EvaluationRequest {
   agentEndpoint: string;
   claudeApiKey: string;
   agentDescription: string;
+  customHeaders?: Record<string, string>;
+  requestTemplate?: string;
+  agentPrompt?: string;
 }
 
 export type EvaluationStatus = "idle" | "running" | "complete" | "error";

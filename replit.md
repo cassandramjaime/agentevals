@@ -65,7 +65,7 @@ Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` 
 ### `artifacts/trust-eval` (`@workspace/trust-eval`)
 
 AI Agent Trust Evaluator — React + Vite frontend. Single-page app with three views:
-1. **Input Form**: 3 fields (Agent API Endpoint, Claude API Key, Agent Description)
+1. **Input Form**: 3 required fields (Agent API Endpoint, Claude API Key, Agent Description) + collapsible "Advanced API Configuration" section with optional Custom Headers (key-value pairs), Request Body Template (JSON with `{{INPUT}}`/`{{PROMPT}}` placeholders), and Agent Prompt (system prompt for the agent)
 2. **Progress View**: Real-time SSE progress with circular gauge
 3. **Results View**: Trust score (0-100), maturity level, pass/fail breakdown
 

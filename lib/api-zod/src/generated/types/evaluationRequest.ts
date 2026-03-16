@@ -13,4 +13,10 @@ export interface EvaluationRequest {
   claudeApiKey: string;
   /** Plain English description of what the agent does */
   agentDescription: string;
+  /** Optional custom headers to send with each agent API request (e.g., x-api-key, anthropic-version) */
+  customHeaders?: Record<string, string>;
+  /** Optional JSON template for the request body. Use {{INPUT}} as a placeholder where the generated test input will be inserted and {{PROMPT}} for the agent system prompt. */
+  requestTemplate?: string;
+  /** Optional system prompt that defines the agent's behavior. Used with {{PROMPT}} placeholder in the request template. */
+  agentPrompt?: string;
 }
